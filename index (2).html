@@ -1,0 +1,3367 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DailyPlanner - Jadwal Kegiatan Harian</title>
+    <!-- Include jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- Include Chart.js for statistics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: #f5f7fb;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        /* Sidebar Menu */
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, #4361ee, #3a0ca3);
+            color: white;
+            min-height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 100;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .logo {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .current-date {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .sidebar-menu {
+            padding: 15px 0;
+        }
+        
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        
+        .menu-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .menu-item.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border-left-color: white;
+        }
+        
+        .menu-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .menu-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            transition: margin-left 0.3s ease;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .top-bar-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .notification-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #6c757d;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #e71d36;
+            color: white;
+            font-size: 10px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Hamburger Menu (Mobile) */
+        .hamburger-menu {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #4361ee;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+        }
+        
+        h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        h3 {
+            color: #4a5568;
+            margin-bottom: 12px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        /* Forms */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #4a5568;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background: white;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            border-color: #4361ee;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .btn-primary {
+            background: #4361ee;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3a0ca3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+        
+        .btn-block {
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn-success {
+            background: #2ec4b6;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #20a394;
+        }
+        
+        .btn-danger {
+            background: #e71d36;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c1121f;
+        }
+        
+        .btn-warning {
+            background: #ff9f1c;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e68a00;
+        }
+        
+        .btn-info {
+            background: #4cc9f0;
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: #2db7e0;
+        }
+        
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+        
+        /* Calendar View */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .calendar-nav-btn {
+            background: #4361ee;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .calendar-title {
+            font-weight: bold;
+            color: #4361ee;
+            font-size: 18px;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .calendar-day-header {
+            background: #4361ee;
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .calendar-day {
+            background: white;
+            padding: 12px;
+            min-height: 100px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        
+        .calendar-day:hover {
+            background: #f8f9fa;
+        }
+        
+        .calendar-day.other-month {
+            background: #f8f9fa;
+            color: #adb5bd;
+        }
+        
+        .calendar-day.today {
+            background: #e7f5ff;
+            border: 2px solid #4361ee;
+        }
+        
+        .calendar-date {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .calendar-events {
+            font-size: 12px;
+            max-height: 60px;
+            overflow-y: auto;
+        }
+        
+        .calendar-event {
+            padding: 4px 6px;
+            border-radius: 4px;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        
+        .calendar-event:hover {
+            transform: translateX(2px);
+        }
+        
+        /* Task Items */
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 16px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 5px solid #4361ee;
+            transition: all 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .task-item:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .task-item.completed {
+            opacity: 0.7;
+            background: #f8f9fa;
+            border-left-color: #2ec4b6;
+        }
+        
+        .task-checkbox {
+            margin-right: 12px;
+            margin-top: 3px;
+        }
+        
+        .task-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .task-info {
+            flex: 1;
+        }
+        
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 16px;
+            color: #2d3748;
+        }
+        
+        .task-title.completed {
+            text-decoration: line-through;
+            color: #718096;
+        }
+        
+        .task-meta {
+            font-size: 13px;
+            color: #718096;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 6px;
+            align-items: center;
+        }
+        
+        .task-category {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .task-priority {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+        }
+        
+        .task-priority.high {
+            background: #e71d36;
+        }
+        
+        .task-priority.medium {
+            background: #ff9f1c;
+        }
+        
+        .task-priority.low {
+            background: #2ec4b6;
+        }
+        
+        .task-time {
+            font-size: 12px;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .task-notes {
+            font-size: 13px;
+            color: #4a5568;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+        
+        .task-actions {
+            display: flex;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .task-item:hover .task-actions {
+            opacity: 1;
+        }
+        
+        /* Statistics Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card:nth-child(1) {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        }
+        
+        .stat-card:nth-child(2) {
+            background: linear-gradient(135deg, #2ec4b6, #20a394);
+        }
+        
+        .stat-card:nth-child(3) {
+            background: linear-gradient(135deg, #ff9f1c, #e68a00);
+        }
+        
+        .stat-card:nth-child(4) {
+            background: linear-gradient(135deg, #e71d36, #c1121f);
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin-bottom: 20px;
+        }
+        
+        /* Search and Filter */
+        .search-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .filter-select {
+            min-width: 140px;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #a0aec0;
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        .empty-text {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .empty-subtext {
+            font-size: 14px;
+            color: #cbd5e0;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: #6c757d;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+        
+        .close-btn:hover {
+            background: #e9ecef;
+            color: #e71d36;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #718096;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .tab-btn:hover {
+            color: #4361ee;
+        }
+        
+        .tab-btn.active {
+            color: #4361ee;
+            border-bottom-color: #4361ee;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* View Toggle */
+        .view-toggle {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+        
+        .view-btn {
+            padding: 10px 15px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s;
+        }
+        
+        .view-btn.active {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: #4361ee;
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading.active {
+            display: flex;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4361ee;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4361ee;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        /* Settings Menu */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .menu-item-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px 15px;
+            text-align: center;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .menu-item-card:hover {
+            background: #f8f9fa;
+            border-color: #4361ee;
+            transform: translateY(-3px);
+        }
+        
+        .menu-icon-lg {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #4361ee;
+        }
+        
+        /* Category Badges */
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        
+        /* Recurring Badge */
+        .recurring-badge {
+            background: #4cc9f0;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        
+        /* Alarm Indicator */
+        .alarm-indicator {
+            color: #e71d36;
+            animation: pulse 2s infinite;
+            margin-left: 6px;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .hamburger-menu {
+                display: block;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .menu-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+            }
+            
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .user-info {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-filter {
+                flex-direction: column;
+            }
+            
+            .search-input, .filter-select {
+                width: 100%;
+                min-width: auto;
+            }
+            
+            .calendar-grid {
+                font-size: 13px;
+            }
+            
+            .calendar-day {
+                min-height: 80px;
+                padding: 8px;
+            }
+            
+            .calendar-day-header {
+                padding: 10px 5px;
+                font-size: 12px;
+            }
+            
+            .calendar-date {
+                font-size: 14px;
+            }
+            
+            .modal {
+                padding: 10px;
+            }
+            
+            .modal-content {
+                max-height: 90vh;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .task-item {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .task-actions {
+                opacity: 1;
+                width: 100%;
+                justify-content: flex-end;
+            }
+            
+            .calendar-grid {
+                grid-template-columns: repeat(7, 1fr);
+                overflow-x: auto;
+            }
+            
+            .calendar-day {
+                min-height: 70px;
+                min-width: 50px;
+            }
+            
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+        
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #1a202c;
+                color: #e2e8f0;
+            }
+            
+            .main-content {
+                background: #1a202c;
+            }
+            
+            .card {
+                background: #2d3748;
+                border-color: #4a5568;
+                color: #e2e8f0;
+            }
+            
+            h2, h3 {
+                color: #e2e8f0;
+            }
+            
+            input, select, textarea {
+                background: #2d3748;
+                border-color: #4a5568;
+                color: #e2e8f0;
+            }
+            
+            .task-item {
+                background: #2d3748;
+                border-color: #4361ee;
+            }
+            
+            .task-item:hover {
+                background: #374151;
+            }
+            
+            .task-title {
+                color: #e2e8f0;
+            }
+            
+            .modal-content {
+                background: #2d3748;
+                color: #e2e8f0;
+            }
+            
+            .modal-header {
+                background: #374151;
+            }
+            
+            .close-btn {
+                color: #cbd5e0;
+            }
+            
+            .close-btn:hover {
+                background: #4a5568;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Menu -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-calendar-alt"></i>
+                DailyPlanner
+            </div>
+            <div class="current-date" id="currentDateDisplay"></div>
+        </div>
+        
+        <div class="sidebar-menu">
+            <a href="#" class="menu-item active" data-page="dashboard">
+                <div class="menu-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="menu-text">Dashboard</div>
+            </a>
+            
+            <a href="#" class="menu-item" data-page="calendar">
+                <div class="menu-icon">
+                    <i class="fas fa-calendar"></i>
+                </div>
+                <div class="menu-text">Kalender</div>
+            </a>
+            
+            <a href="#" class="menu-item" data-page="tasks">
+                <div class="menu-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="menu-text">Kegiatan</div>
+            </a>
+            
+            <a href="#" class="menu-item" data-page="reports">
+                <div class="menu-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="menu-text">Laporan</div>
+            </a>
+            
+            <a href="#" class="menu-item" data-page="categories">
+                <div class="menu-icon">
+                    <i class="fas fa-tags"></i>
+                </div>
+                <div class="menu-text">Kategori</div>
+            </a>
+            
+            <a href="#" class="menu-item" data-page="settings">
+                <div class="menu-icon">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="menu-text">Pengaturan</div>
+            </a>
+            
+            <div style="padding: 20px; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 12px; opacity: 0.7; margin-bottom: 10px;">Quick Actions</div>
+                <button class="btn btn-primary btn-block" onclick="showTaskModal()" style="margin-bottom: 10px;">
+                    <i class="fas fa-plus"></i> Kegiatan Baru
+                </button>
+                <button class="btn btn-success btn-block" onclick="showCategoryModal()">
+                    <i class="fas fa-tag"></i> Kategori Baru
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="hamburger-menu" id="hamburgerMenu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="top-bar-title" id="pageTitle">Dashboard</div>
+            </div>
+            
+            <div class="user-info">
+                <div style="font-size: 14px; color: #4a5568;">
+                    <i class="fas fa-user-circle"></i> Pengguna
+                </div>
+                <button class="notification-btn" id="notificationBtn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">0</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Pages -->
+        <!-- Dashboard -->
+        <div class="page active" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Kegiatan Hari Ini</div>
+                    <div class="stat-value" id="todayTasks">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Selesai</div>
+                    <div class="stat-value" id="completedTasks">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Prioritas Tinggi</div>
+                    <div class="stat-value" id="highPriority">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pengingat Aktif</div>
+                    <div class="stat-value" id="activeReminders">0</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Kegiatan Hari Ini</h2>
+                    <button class="btn btn-primary btn-sm" onclick="showTaskModal()">
+                        <i class="fas fa-plus"></i> Tambah
+                    </button>
+                </div>
+                <div id="todaySchedule">
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="far fa-calendar-check"></i>
+                        </div>
+                        <div class="empty-text">Tidak ada kegiatan hari ini</div>
+                        <div class="empty-subtext">Tambahkan kegiatan untuk memulai hari Anda</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Kegiatan Mendatang</h2>
+                <div id="upcomingTasks">
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="far fa-clock"></i>
+                        </div>
+                        <div class="empty-text">Tidak ada kegiatan mendatang</div>
+                        <div class="empty-subtext">Rencanakan kegiatan Anda untuk hari berikutnya</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Statistik Produktivitas</h2>
+                <div class="chart-container">
+                    <canvas id="productivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Calendar View -->
+        <div class="page" id="calendar">
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button class="calendar-nav-btn" id="prevMonthBtn">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="calendar-title" id="calendarMonthYear">Maret 2024</div>
+                    <button class="calendar-nav-btn" id="nextMonthBtn">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-primary" onclick="showTaskModal()">
+                        <i class="fas fa-plus"></i> Kegiatan
+                    </button>
+                    <button class="btn btn-sm btn-info active" onclick="switchView('month')">
+                        <i class="fas fa-calendar-alt"></i> Bulan
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="switchView('week')">
+                        <i class="fas fa-calendar-week"></i> Minggu
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="switchView('day')">
+                        <i class="fas fa-calendar-day"></i> Hari
+                    </button>
+                </div>
+            </div>
+            
+            <div id="calendarView">
+                <!-- Calendar grid will be generated here -->
+            </div>
+        </div>
+        
+        <!-- Tasks List -->
+        <div class="page" id="tasks">
+            <div class="search-filter">
+                <input type="text" id="searchInput" class="search-input" placeholder="Cari kegiatan...">
+                <select id="categoryFilter" class="filter-select">
+                    <option value="">Semua Kategori</option>
+                </select>
+                <select id="statusFilter" class="filter-select">
+                    <option value="">Semua Status</option>
+                    <option value="pending">Belum Selesai</option>
+                    <option value="completed">Selesai</option>
+                </select>
+                <select id="priorityFilter" class="filter-select">
+                    <option value="">Semua Prioritas</option>
+                    <option value="high">Tinggi</option>
+                    <option value="medium">Sedang</option>
+                    <option value="low">Rendah</option>
+                </select>
+                <button class="btn btn-primary" onclick="showTaskModal()">
+                    <i class="fas fa-plus"></i> Kegiatan Baru
+                </button>
+            </div>
+            
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="setTaskView('list')">
+                    <i class="fas fa-list"></i> List
+                </button>
+                <button class="view-btn" onclick="setTaskView('day')">
+                    <i class="fas fa-calendar-day"></i> Per Hari
+                </button>
+                <button class="view-btn" onclick="setTaskView('week')">
+                    <i class="fas fa-calendar-week"></i> Per Minggu
+                </button>
+            </div>
+            
+            <div id="tasksList">
+                <!-- Tasks will be loaded here -->
+            </div>
+        </div>
+        
+        <!-- Reports -->
+        <div class="page" id="reports">
+            <div class="card">
+                <h2>Laporan Kegiatan</h2>
+                
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="daily">
+                        <i class="fas fa-calendar-day"></i> Harian
+                    </button>
+                    <button class="tab-btn" data-tab="weekly">
+                        <i class="fas fa-calendar-week"></i> Mingguan
+                    </button>
+                    <button class="tab-btn" data-tab="monthly">
+                        <i class="fas fa-calendar-alt"></i> Bulanan
+                    </button>
+                    <button class="tab-btn" data-tab="yearly">
+                        <i class="fas fa-calendar"></i> Tahunan
+                    </button>
+                </div>
+                
+                <div class="tab-content active" id="dailyReport">
+                    <div class="form-group">
+                        <label>Pilih Tanggal</label>
+                        <input type="date" id="reportDate" style="margin-bottom: 15px;">
+                    </div>
+                    
+                    <div id="dailyReportContent">
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="empty-text">Pilih tanggal untuk melihat laporan</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-block" id="exportDailyBtn">
+                        <i class="fas fa-download"></i> Download Laporan Harian
+                    </button>
+                </div>
+                
+                <div class="tab-content" id="weeklyReport">
+                    <div class="form-group">
+                        <label>Pilih Minggu</label>
+                        <input type="week" id="reportWeek" style="margin-bottom: 15px;">
+                    </div>
+                    
+                    <div id="weeklyReportContent">
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="empty-text">Pilih minggu untuk melihat laporan</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-block" id="exportWeeklyBtn">
+                        <i class="fas fa-download"></i> Download Laporan Mingguan
+                    </button>
+                </div>
+                
+                <div class="tab-content" id="monthlyReport">
+                    <div class="form-group">
+                        <label>Pilih Bulan</label>
+                        <select id="reportMonth" style="margin-bottom: 15px;">
+                            <option value="0">Januari</option>
+                            <option value="1">Februari</option>
+                            <option value="2">Maret</option>
+                            <option value="3">April</option>
+                            <option value="4">Mei</option>
+                            <option value="5">Juni</option>
+                            <option value="6">Juli</option>
+                            <option value="7">Agustus</option>
+                            <option value="8">September</option>
+                            <option value="9">Oktober</option>
+                            <option value="10">November</option>
+                            <option value="11">Desember</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Pilih Tahun</label>
+                        <select id="reportYear"></select>
+                    </div>
+                    
+                    <div id="monthlyReportContent">
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="empty-text">Pilih bulan dan tahun</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-block" id="exportMonthlyBtn">
+                        <i class="fas fa-download"></i> Download Laporan Bulanan
+                    </button>
+                </div>
+                
+                <div class="tab-content" id="yearlyReport">
+                    <div class="form-group">
+                        <label>Pilih Tahun</label>
+                        <select id="reportYearSelect"></select>
+                    </div>
+                    
+                    <div id="yearlyReportContent">
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-file-alt"></i>
+                            </div>
+                            <div class="empty-text">Pilih tahun untuk melihat laporan</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary btn-block" id="exportYearlyBtn">
+                        <i class="fas fa-download"></i> Download Laporan Tahunan
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Analisis Produktivitas</h2>
+                <div class="chart-container">
+                    <canvas id="analyticsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Categories -->
+        <div class="page" id="categories">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Kategori Kegiatan</h2>
+                    <button class="btn btn-primary btn-sm" onclick="showCategoryModal()">
+                        <i class="fas fa-plus"></i> Kategori Baru
+                    </button>
+                </div>
+                
+                <div id="categoriesList">
+                    <!-- Categories will be loaded here -->
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Distribusi Kegiatan per Kategori</h2>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings -->
+        <div class="page" id="settings">
+            <div class="menu-grid">
+                <div class="menu-item-card" id="backupBtn">
+                    <div class="menu-icon-lg">
+                        <i class="fas fa-save"></i>
+                    </div>
+                    <div>Backup Data</div>
+                </div>
+                <div class="menu-item-card" id="restoreBtn">
+                    <div class="menu-icon-lg">
+                        <i class="fas fa-undo"></i>
+                    </div>
+                    <div>Restore Data</div>
+                </div>
+                <div class="menu-item-card" id="resetBtn">
+                    <div class="menu-icon-lg">
+                        <i class="fas fa-trash"></i>
+                    </div>
+                    <div>Reset Data</div>
+                </div>
+                <div class="menu-item-card" id="exportAllBtn">
+                    <div class="menu-icon-lg">
+                        <i class="fas fa-file-export"></i>
+                    </div>
+                    <div>Export Semua</div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h2>Pengaturan Notifikasi</h2>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="enableNotifications" checked style="width: 18px; height: 18px;">
+                        <span>Aktifkan Notifikasi Browser</span>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+                        <input type="checkbox" id="enableSounds" checked style="width: 18px; height: 18px;">
+                        <span>Aktifkan Suara Pengingat</span>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label>Waktu Pengingat Default (menit sebelumnya)</label>
+                    <select id="defaultReminderTime">
+                        <option value="5">5 menit</option>
+                        <option value="10" selected>10 menit</option>
+                        <option value="15">15 menit</option>
+                        <option value="30">30 menit</option>
+                        <option value="60">1 jam</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h2>Informasi Aplikasi</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <div style="font-size: 12px; color: #718096; margin-bottom: 5px;">Versi</div>
+                        <div style="font-weight: 500;">1.0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #718096; margin-bottom: 5px;">Jumlah Kategori</div>
+                        <div style="font-weight: 500;" id="categoryCount">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #718096; margin-bottom: 5px;">Jumlah Kegiatan</div>
+                        <div style="font-weight: 500;" id="taskCount">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #718096; margin-bottom: 5px;">Data Tersimpan</div>
+                        <div style="font-weight: 500;" id="dataSize">0 KB</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: #718096; margin-bottom: 5px;">Status Notifikasi</div>
+                        <div style="font-weight: 500;" id="notificationStatus">Aktif</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0;" id="taskModalTitle">Tambah Kegiatan Baru</h3>
+                <button class="close-btn" id="closeTaskBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <input type="hidden" id="editingTaskId">
+                    
+                    <div class="form-group">
+                        <label>Judul Kegiatan *</label>
+                        <input type="text" id="taskTitle" required placeholder="Contoh: Meeting dengan klien, Olahraga pagi">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select id="taskCategory" required>
+                            <option value="">Pilih Kategori</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Prioritas</label>
+                        <select id="taskPriority" required>
+                            <option value="low">Rendah</option>
+                            <option value="medium" selected>Sedang</option>
+                            <option value="high">Tinggi</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tanggal *</label>
+                        <input type="date" id="taskDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Waktu Mulai</label>
+                        <input type="time" id="taskStartTime">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Waktu Selesai</label>
+                        <input type="time" id="taskEndTime">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Pengulangan</label>
+                        <select id="taskRepeat">
+                            <option value="none">Tidak Diulang</option>
+                            <option value="daily">Setiap Hari</option>
+                            <option value="weekly">Setiap Minggu</option>
+                            <option value="monthly">Setiap Bulan</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Pengingat</label>
+                        <select id="taskReminder">
+                            <option value="none">Tidak ada</option>
+                            <option value="5">5 menit sebelumnya</option>
+                            <option value="10" selected>10 menit sebelumnya</option>
+                            <option value="15">15 menit sebelumnya</option>
+                            <option value="30">30 menit sebelumnya</option>
+                            <option value="60">1 jam sebelumnya</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Catatan (opsional)</label>
+                        <textarea id="taskNotes" rows="3" placeholder="Tambah catatan atau detail kegiatan..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block" id="taskSubmitBtn">
+                        <i class="fas fa-save"></i> Simpan Kegiatan
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="categoryModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0;" id="categoryModalTitle">Tambah Kategori Baru</h3>
+                <button class="close-btn" id="closeCategoryBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <input type="hidden" id="editingCategoryId">
+                    
+                    <div class="form-group">
+                        <label>Nama Kategori *</label>
+                        <input type="text" id="categoryName" required placeholder="Contoh: Kerja, Pribadi, Olahraga">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Warna *</label>
+                        <input type="color" id="categoryColor" value="#4361ee" required style="width: 60px; height: 40px;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Ikon</label>
+                        <select id="categoryIcon">
+                            <option value="💼">💼 Kerja</option>
+                            <option value="👤">👤 Pribadi</option>
+                            <option value="🏥">🏥 Kesehatan</option>
+                            <option value="📚">📚 Belajar</option>
+                            <option value="💰">💰 Keuangan</option>
+                            <option value="🏠">🏠 Rumah</option>
+                            <option value="🎯">🎯 Target</option>
+                            <option value="🎉">🎉 Hiburan</option>
+                            <option value="🛒">🛒 Belanja</option>
+                            <option value="✈️">✈️ Perjalanan</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Deskripsi (opsional)</label>
+                        <textarea id="categoryDesc" rows="2" placeholder="Deskripsi kategori..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-save"></i> Simpan Kategori
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Audio for notifications -->
+    <audio id="notificationSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // ========== APLIKASI UTAMA ==========
+        
+        // Data structure dengan support multi-bulan dan kategori
+        let appData = {
+            version: "1.0",
+            currentYear: new Date().getFullYear(),
+            currentMonth: new Date().getMonth(),
+            currentDay: new Date().getDate(),
+            categories: [],
+            tasks: [],
+            settings: {
+                notificationsEnabled: true,
+                soundsEnabled: true,
+                defaultReminderTime: 10,
+                theme: "light"
+            }
+        };
+        
+        // Nama bulan dan hari
+        const monthNames = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+        
+        const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        const dayNamesShort = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+        
+        // Variabel global
+        let currentView = 'month';
+        let taskView = 'list';
+        let chartInstances = {};
+        
+        // ========== FUNGSI UTAMA ==========
+        
+        // Load data from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('dailyplanner_data');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                appData = { ...appData, ...parsed };
+                
+                // Initialize categories if empty
+                if (!appData.categories || appData.categories.length === 0) {
+                    createDefaultCategories();
+                }
+                
+                // Initialize settings if not present
+                if (!appData.settings) {
+                    appData.settings = {
+                        notificationsEnabled: true,
+                        soundsEnabled: true,
+                        defaultReminderTime: 10,
+                        theme: "light"
+                    };
+                }
+                
+                // Initialize tasks if not present
+                if (!appData.tasks) {
+                    appData.tasks = [];
+                }
+            } else {
+                createDefaultCategories();
+            }
+        }
+        
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('dailyplanner_data', JSON.stringify(appData));
+            updateDisplay();
+            updateDataSize();
+            checkReminders();
+        }
+        
+        // Create default categories
+        function createDefaultCategories() {
+            appData.categories = [
+                {
+                    id: 'work',
+                    name: 'Kerja',
+                    color: '#4361ee',
+                    icon: '💼',
+                    description: 'Kegiatan pekerjaan'
+                },
+                {
+                    id: 'personal',
+                    name: 'Pribadi',
+                    color: '#2ec4b6',
+                    icon: '👤',
+                    description: 'Kegiatan pribadi'
+                },
+                {
+                    id: 'health',
+                    name: 'Kesehatan',
+                    color: '#e71d36',
+                    icon: '🏥',
+                    description: 'Olahraga dan kesehatan'
+                },
+                {
+                    id: 'study',
+                    name: 'Belajar',
+                    color: '#ff9f1c',
+                    icon: '📚',
+                    description: 'Kegiatan belajar'
+                },
+                {
+                    id: 'finance',
+                    name: 'Keuangan',
+                    color: '#4cc9f0',
+                    icon: '💰',
+                    description: 'Pengelolaan keuangan'
+                }
+            ];
+        }
+        
+        // Update data size display
+        function updateDataSize() {
+            const data = localStorage.getItem('dailyplanner_data');
+            const size = data ? (data.length / 1024).toFixed(2) : '0';
+            document.getElementById('dataSize').textContent = size + ' KB';
+        }
+        
+        // Show toast notification
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+        
+        // Show loading
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.add('active');
+        }
+        
+        // Hide loading
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('active');
+        }
+        
+        // Play notification sound
+        function playNotificationSound() {
+            if (appData.settings.soundsEnabled) {
+                const sound = document.getElementById('notificationSound');
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log('Error playing sound:', e));
+            }
+        }
+        
+        // Send browser notification
+        function sendNotification(title, body) {
+            if (!appData.settings.notificationsEnabled) return;
+            
+            if (!("Notification" in window)) {
+                console.log("Browser tidak mendukung notifikasi");
+                return;
+            }
+            
+            if (Notification.permission === "granted") {
+                new Notification(title, { body });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        new Notification(title, { body });
+                    }
+                });
+            }
+        }
+        
+        // Check for due reminders
+        function checkReminders() {
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            let reminderCount = 0;
+            
+            appData.tasks.forEach(task => {
+                if (task.completed || !task.reminder || task.reminder === 'none') return;
+                
+                const taskDate = new Date(task.date);
+                const today = new Date();
+                
+                // Check if task is today
+                if (taskDate.toDateString() === today.toDateString()) {
+                    if (task.startTime) {
+                        const [hours, minutes] = task.startTime.split(':');
+                        const taskTime = parseInt(hours) * 60 + parseInt(minutes);
+                        const reminderTime = taskTime - parseInt(task.reminder);
+                        
+                        // Check if reminder should be triggered now
+                        if (currentTime >= reminderTime && currentTime < reminderTime + 1 && !task.reminderShown) {
+                            // Show notification
+                            sendNotification(`Pengingat: ${task.title}`, 
+                                `Akan dimulai ${task.reminder} menit lagi`);
+                            
+                            // Play sound
+                            playNotificationSound();
+                            
+                            // Update task to mark reminder as shown
+                            task.reminderShown = true;
+                        }
+                        
+                        // Check if reminder is upcoming (within next 15 minutes)
+                        if (currentTime >= reminderTime - 15 && currentTime < reminderTime && !task.reminderShown) {
+                            reminderCount++;
+                        }
+                    }
+                }
+            });
+            
+            // Update notification badge
+            document.getElementById('notificationBadge').textContent = reminderCount;
+            
+            saveData();
+        }
+        
+        // Format date to display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+        
+        // Format date to short display
+        function formatDateShort(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: 'short'
+            });
+        }
+        
+        // Get color for priority
+        function getPriorityColor(priority) {
+            switch(priority) {
+                case 'high': return '#e71d36';
+                case 'medium': return '#ff9f1c';
+                case 'low': return '#2ec4b6';
+                default: return '#6c757d';
+            }
+        }
+        
+        // Get priority text
+        function getPriorityText(priority) {
+            switch(priority) {
+                case 'high': return 'Tinggi';
+                case 'medium': return 'Sedang';
+                case 'low': return 'Rendah';
+                default: return '';
+            }
+        }
+        
+        // Get category by ID
+        function getCategory(categoryId) {
+            return appData.categories.find(cat => cat.id === categoryId) || {
+                id: 'unknown',
+                name: 'Lainnya',
+                color: '#6c757d',
+                icon: '📌'
+            };
+        }
+        
+        // Calculate statistics
+        function calculateStatistics() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayTasks = appData.tasks.filter(task => task.date === today);
+            const completedTasks = appData.tasks.filter(task => task.completed);
+            const highPriorityTasks = appData.tasks.filter(task => 
+                task.priority === 'high' && !task.completed);
+            const tasksWithReminders = appData.tasks.filter(task => 
+                task.reminder && task.reminder !== 'none' && !task.completed);
+            
+            return {
+                today: todayTasks.length,
+                completed: completedTasks.length,
+                highPriority: highPriorityTasks.length,
+                reminders: tasksWithReminders.length,
+                total: appData.tasks.length
+            };
+        }
+        
+        // Update page title
+        function updatePageTitle(pageId) {
+            const titles = {
+                'dashboard': 'Dashboard',
+                'calendar': 'Kalender',
+                'tasks': 'Kegiatan',
+                'reports': 'Laporan',
+                'categories': 'Kategori',
+                'settings': 'Pengaturan'
+            };
+            
+            document.getElementById('pageTitle').textContent = titles[pageId] || 'DailyPlanner';
+        }
+        
+        // Update display
+        function updateDisplay() {
+            // Update current date
+            const now = new Date();
+            document.getElementById('currentDateDisplay').textContent = 
+                formatDate(now.toISOString());
+            
+            // Update statistics
+            const stats = calculateStatistics();
+            document.getElementById('todayTasks').textContent = stats.today;
+            document.getElementById('completedTasks').textContent = stats.completed;
+            document.getElementById('highPriority').textContent = stats.highPriority;
+            document.getElementById('activeReminders').textContent = stats.reminders;
+            
+            // Update counts
+            document.getElementById('categoryCount').textContent = appData.categories.length;
+            document.getElementById('taskCount').textContent = appData.tasks.length;
+            
+            // Update notification status
+            const notificationStatus = document.getElementById('notificationStatus');
+            notificationStatus.textContent = appData.settings.notificationsEnabled ? 'Aktif' : 'Nonaktif';
+            notificationStatus.style.color = appData.settings.notificationsEnabled ? '#2ec4b6' : '#e71d36';
+            
+            // Update settings checkboxes
+            document.getElementById('enableNotifications').checked = appData.settings.notificationsEnabled;
+            document.getElementById('enableSounds').checked = appData.settings.soundsEnabled;
+            document.getElementById('defaultReminderTime').value = appData.settings.defaultReminderTime;
+            
+            // Update dashboard
+            updateDashboard();
+            
+            // Update calendar
+            updateCalendar();
+            
+            // Update tasks list
+            updateTasksList();
+            
+            // Update categories
+            updateCategories();
+            
+            // Update reports
+            updateReports();
+            
+            // Update charts
+            updateCharts();
+            
+            // Check reminders
+            checkReminders();
+        }
+        
+        // Update dashboard
+        function updateDashboard() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayTasks = appData.tasks.filter(task => task.date === today)
+                .sort((a, b) => {
+                    if (!a.startTime) return 1;
+                    if (!b.startTime) return -1;
+                    return a.startTime.localeCompare(b.startTime);
+                });
+            
+            const todayContainer = document.getElementById('todaySchedule');
+            if (todayTasks.length === 0) {
+                todayContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="far fa-calendar-check"></i>
+                        </div>
+                        <div class="empty-text">Tidak ada kegiatan hari ini</div>
+                        <div class="empty-subtext">Tambahkan kegiatan untuk memulai hari Anda</div>
+                    </div>
+                `;
+            } else {
+                todayContainer.innerHTML = '';
+                todayTasks.forEach(task => {
+                    const category = getCategory(task.category);
+                    todayContainer.appendChild(createTaskElement(task, category));
+                });
+            }
+            
+            // Update upcoming tasks (next 7 days)
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            const upcomingTasks = appData.tasks.filter(task => {
+                const taskDate = new Date(task.date);
+                const today = new Date();
+                const nextWeekDate = new Date();
+                nextWeekDate.setDate(today.getDate() + 7);
+                
+                return !task.completed && 
+                       taskDate >= today && 
+                       taskDate <= nextWeekDate;
+            }).sort((a, b) => new Date(a.date) - new Date(b.date))
+              .slice(0, 5); // Show only 5 upcoming tasks
+            
+            const upcomingContainer = document.getElementById('upcomingTasks');
+            if (upcomingTasks.length === 0) {
+                upcomingContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="far fa-clock"></i>
+                        </div>
+                        <div class="empty-text">Tidak ada kegiatan mendatang</div>
+                        <div class="empty-subtext">Rencanakan kegiatan Anda untuk hari berikutnya</div>
+                    </div>
+                `;
+            } else {
+                upcomingContainer.innerHTML = '';
+                upcomingTasks.forEach(task => {
+                    const category = getCategory(task.category);
+                    upcomingContainer.appendChild(createTaskElement(task, category));
+                });
+            }
+        }
+        
+        // Create task element for display
+        function createTaskElement(task, category) {
+            const div = document.createElement('div');
+            div.className = `task-item ${task.completed ? 'completed' : ''}`;
+            div.dataset.id = task.id;
+            
+            const timeDisplay = task.startTime ? 
+                `${task.startTime}${task.endTime ? ` - ${task.endTime}` : ''}` : 
+                'Sepanjang hari';
+            
+            div.innerHTML = `
+                <div class="task-checkbox">
+                    <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                           onchange="toggleTaskComplete('${task.id}')">
+                </div>
+                <div class="task-info">
+                    <div class="task-title ${task.completed ? 'completed' : ''}">
+                        ${task.title}
+                        ${task.repeat && task.repeat !== 'none' ? 
+                            `<span class="recurring-badge"><i class="fas fa-redo"></i></span>` : ''}
+                        ${task.reminder && task.reminder !== 'none' ? 
+                            `<span class="alarm-indicator"><i class="fas fa-bell"></i></span>` : ''}
+                    </div>
+                    <div class="task-meta">
+                        <span class="task-category" style="background: ${category.color}20; color: ${category.color};">
+                            ${category.icon} ${category.name}
+                        </span>
+                        <span class="task-priority ${task.priority}">
+                            ${getPriorityText(task.priority)}
+                        </span>
+                        <span class="task-time">
+                            <i class="far fa-calendar"></i> ${formatDateShort(task.date)} | 
+                            <i class="far fa-clock"></i> ${timeDisplay}
+                        </span>
+                    </div>
+                    ${task.notes ? `<div class="task-notes">${task.notes}</div>` : ''}
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-warning btn-sm" onclick="editTask('${task.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteTask('${task.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            return div;
+        }
+        
+        // Update calendar
+        function updateCalendar() {
+            const monthYear = document.getElementById('calendarMonthYear');
+            monthYear.textContent = `${monthNames[appData.currentMonth]} ${appData.currentYear}`;
+            
+            if (currentView === 'month') {
+                renderMonthView();
+            } else if (currentView === 'week') {
+                renderWeekView();
+            } else if (currentView === 'day') {
+                renderDayView();
+            }
+        }
+        
+        // Render month view
+        function renderMonthView() {
+            const container = document.getElementById('calendarView');
+            const firstDay = new Date(appData.currentYear, appData.currentMonth, 1);
+            const lastDay = new Date(appData.currentYear, appData.currentMonth + 1, 0);
+            const startingDay = firstDay.getDay();
+            const monthLength = lastDay.getDate();
+            const today = new Date();
+            
+            let html = '<div class="calendar-grid">';
+            
+            // Day headers
+            dayNamesShort.forEach(day => {
+                html += `<div class="calendar-day-header">${day}</div>`;
+            });
+            
+            // Previous month days
+            const prevMonthLastDay = new Date(appData.currentYear, appData.currentMonth, 0).getDate();
+            for (let i = 0; i < startingDay; i++) {
+                const date = prevMonthLastDay - startingDay + i + 1;
+                const dateString = new Date(appData.currentYear, appData.currentMonth - 1, date)
+                    .toISOString().split('T')[0];
+                
+                html += `<div class="calendar-day other-month">`;
+                html += `<div class="calendar-date">${date}</div>`;
+                html += renderEventsForDate(dateString);
+                html += `</div>`;
+            }
+            
+            // Current month days
+            for (let day = 1; day <= monthLength; day++) {
+                const date = new Date(appData.currentYear, appData.currentMonth, day);
+                const dateString = date.toISOString().split('T')[0];
+                const isToday = date.getDate() === today.getDate() && 
+                               date.getMonth() === today.getMonth() && 
+                               date.getFullYear() === today.getFullYear();
+                
+                html += `<div class="calendar-day ${isToday ? 'today' : ''}" onclick="showTasksForDate('${dateString}')">`;
+                html += `<div class="calendar-date">${day}</div>`;
+                html += renderEventsForDate(dateString);
+                html += `</div>`;
+            }
+            
+            // Next month days
+            const totalCells = 42; // 6 weeks * 7 days
+            const remainingCells = totalCells - (startingDay + monthLength);
+            for (let i = 1; i <= remainingCells; i++) {
+                const dateString = new Date(appData.currentYear, appData.currentMonth + 1, i)
+                    .toISOString().split('T')[0];
+                
+                html += `<div class="calendar-day other-month">`;
+                html += `<div class="calendar-date">${i}</div>`;
+                html += renderEventsForDate(dateString);
+                html += `</div>`;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // Render week view
+        function renderWeekView() {
+            // Implement week view
+            const container = document.getElementById('calendarView');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                    <div class="empty-text">Tampilan mingguan akan segera tersedia</div>
+                </div>
+            `;
+        }
+        
+        // Render day view
+        function renderDayView() {
+            // Implement day view
+            const container = document.getElementById('calendarView');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="empty-text">Tampilan harian akan segera tersedia</div>
+                </div>
+            `;
+        }
+        
+        // Render events for a specific date
+        function renderEventsForDate(dateString) {
+            const tasks = appData.tasks.filter(task => task.date === dateString);
+            if (tasks.length === 0) return '';
+            
+            let html = '<div class="calendar-events">';
+            tasks.slice(0, 3).forEach(task => { // Show max 3 events per day
+                const category = getCategory(task.category);
+                html += `<div class="calendar-event" style="background: ${category.color}20; color: ${category.color};" 
+                        onclick="event.stopPropagation(); editTask('${task.id}')" 
+                        title="${task.title}">
+                        ${category.icon} ${task.title.substring(0, 10)}${task.title.length > 10 ? '...' : ''}
+                        </div>`;
+            });
+            
+            if (tasks.length > 3) {
+                html += `<div class="calendar-event" style="background: #6c757d20; color: #6c757d;"
+                        onclick="event.stopPropagation(); showTasksForDate('${dateString}')">
+                        +${tasks.length - 3} lainnya
+                        </div>`;
+            }
+            
+            html += '</div>';
+            return html;
+        }
+        
+        // Show tasks for a specific date
+        function showTasksForDate(dateString) {
+            // Switch to tasks page and filter by date
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            document.querySelector('.menu-item[data-page="tasks"]').classList.add('active');
+            
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById('tasks').classList.add('active');
+            
+            updatePageTitle('tasks');
+            
+            // Set date filter
+            const date = new Date(dateString);
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('priorityFilter').value = '';
+            
+            // Filter tasks by date
+            const filteredTasks = appData.tasks.filter(task => task.date === dateString);
+            
+            // Render tasks
+            const container = document.getElementById('tasksList');
+            container.innerHTML = '';
+            
+            if (filteredTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="far fa-calendar"></i>
+                        </div>
+                        <div class="empty-text">Tidak ada kegiatan pada ${formatDate(dateString)}</div>
+                    </div>
+                `;
+            } else {
+                filteredTasks.forEach(task => {
+                    const category = getCategory(task.category);
+                    container.appendChild(createTaskElement(task, category));
+                });
+            }
+        }
+        
+        // Switch calendar view
+        function switchView(view) {
+            currentView = view;
+            updateCalendar();
+            
+            // Update active button
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-info');
+            });
+            
+            const buttons = document.querySelectorAll('.btn-group .btn');
+            const index = view === 'month' ? 1 : view === 'week' ? 2 : 3;
+            if (buttons[index]) {
+                buttons[index].classList.remove('btn-info');
+                buttons[index].classList.add('btn-primary');
+            }
+        }
+        
+        // Set task view
+        function setTaskView(view) {
+            taskView = view;
+            updateTasksList();
+            
+            // Update active button
+            document.querySelectorAll('.view-toggle .view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+        
+        // Update tasks list
+        function updateTasksList() {
+            let filteredTasks = [...appData.tasks];
+            
+            // Apply filters
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            
+            if (searchTerm) {
+                filteredTasks = filteredTasks.filter(task => 
+                    task.title.toLowerCase().includes(searchTerm) ||
+                    (task.notes && task.notes.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            if (categoryFilter) {
+                filteredTasks = filteredTasks.filter(task => task.category === categoryFilter);
+            }
+            
+            if (statusFilter === 'pending') {
+                filteredTasks = filteredTasks.filter(task => !task.completed);
+            } else if (statusFilter === 'completed') {
+                filteredTasks = filteredTasks.filter(task => task.completed);
+            }
+            
+            if (priorityFilter) {
+                filteredTasks = filteredTasks.filter(task => task.priority === priorityFilter);
+            }
+            
+            // Sort tasks
+            filteredTasks.sort((a, b) => {
+                // Sort by date
+                const dateCompare = new Date(a.date) - new Date(b.date);
+                if (dateCompare !== 0) return dateCompare;
+                
+                // Then by start time
+                if (a.startTime && b.startTime) {
+                    return a.startTime.localeCompare(b.startTime);
+                }
+                
+                // Then by priority (high first)
+                const priorityOrder = { high: 0, medium: 1, low: 2 };
+                return priorityOrder[a.priority] - priorityOrder[b.priority];
+            });
+            
+            // Update category filter options
+            updateCategoryFilter();
+            
+            // Render tasks based on view
+            const container = document.getElementById('tasksList');
+            if (filteredTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <div class="empty-text">Tidak ada kegiatan yang sesuai dengan filter</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (taskView === 'list') {
+                renderTaskListView(filteredTasks, container);
+            } else if (taskView === 'day') {
+                renderTaskDayView(filteredTasks, container);
+            } else if (taskView === 'week') {
+                renderTaskWeekView(filteredTasks, container);
+            }
+        }
+        
+        // Render task list view
+        function renderTaskListView(tasks, container) {
+            container.innerHTML = '';
+            tasks.forEach(task => {
+                const category = getCategory(task.category);
+                container.appendChild(createTaskElement(task, category));
+            });
+        }
+        
+        // Render task day view
+        function renderTaskDayView(tasks, container) {
+            // Group tasks by date
+            const tasksByDate = {};
+            tasks.forEach(task => {
+                if (!tasksByDate[task.date]) {
+                    tasksByDate[task.date] = [];
+                }
+                tasksByDate[task.date].push(task);
+            });
+            
+            // Sort dates
+            const dates = Object.keys(tasksByDate).sort();
+            
+            container.innerHTML = '';
+            dates.forEach(date => {
+                const dateCard = document.createElement('div');
+                dateCard.className = 'card';
+                dateCard.style.marginBottom = '15px';
+                
+                dateCard.innerHTML = `
+                    <h3><i class="far fa-calendar"></i> ${formatDate(date)}</h3>
+                    <div id="tasks-${date}"></div>
+                `;
+                
+                container.appendChild(dateCard);
+                
+                const dateContainer = document.getElementById(`tasks-${date}`);
+                tasksByDate[date].forEach(task => {
+                    const category = getCategory(task.category);
+                    dateContainer.appendChild(createTaskElement(task, category));
+                });
+            });
+        }
+        
+        // Render task week view
+        function renderTaskWeekView(tasks, container) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                    <div class="empty-text">Tampilan mingguan akan segera tersedia</div>
+                </div>
+            `;
+        }
+        
+        // Update category filter
+        function updateCategoryFilter() {
+            const filter = document.getElementById('categoryFilter');
+            filter.innerHTML = '<option value="">Semua Kategori</option>';
+            
+            appData.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = `${category.icon} ${category.name}`;
+                filter.appendChild(option);
+            });
+        }
+        
+        // Update categories display
+        function updateCategories() {
+            const container = document.getElementById('categoriesList');
+            container.innerHTML = '';
+            
+            appData.categories.forEach(category => {
+                const categoryTasks = appData.tasks.filter(task => task.category === category.id);
+                const completedTasks = categoryTasks.filter(task => task.completed);
+                
+                const div = document.createElement('div');
+                div.className = 'task-item';
+                div.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                        <div style="font-size: 24px;">${category.icon}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">${category.name}</div>
+                            <div style="font-size: 13px; color: #718096;">${category.description || 'Tidak ada deskripsi'}</div>
+                            <div style="font-size: 12px; color: #4a5568; margin-top: 6px;">
+                                ${categoryTasks.length} kegiatan (${completedTasks.length} selesai)
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="category-badge" style="background: ${category.color}20; color: ${category.color};">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background: ${category.color};"></div>
+                            ${category.color}
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-warning btn-sm" onclick="editCategory('${category.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            ${categoryTasks.length === 0 ? 
+                                `<button class="btn btn-danger btn-sm" onclick="deleteCategory('${category.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>` : 
+                                `<button class="btn btn-danger btn-sm" disabled title="Tidak bisa dihapus karena ada kegiatan">
+                                    <i class="fas fa-trash"></i>
+                                </button>`
+                            }
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        // Update reports
+        function updateReports() {
+            // Update year selects
+            const currentYear = new Date().getFullYear();
+            const yearSelects = ['reportYear', 'reportYearSelect'];
+            
+            yearSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '';
+                
+                for (let y = currentYear - 5; y <= currentYear + 5; y++) {
+                    const option = document.createElement('option');
+                    option.value = y;
+                    option.textContent = y;
+                    if (y === appData.currentYear) option.selected = true;
+                    select.appendChild(option);
+                }
+            });
+            
+            // Set current month
+            document.getElementById('reportMonth').value = appData.currentMonth;
+            
+            // Set current date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reportDate').value = today;
+            
+            // Set current week
+            const now = new Date();
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+            const weekString = `${startOfWeek.getFullYear()}-W${Math.ceil(startOfWeek.getDate() / 7)}`;
+            document.getElementById('reportWeek').value = weekString;
+        }
+        
+        // Update charts
+        function updateCharts() {
+            updateProductivityChart();
+            updateAnalyticsChart();
+            updateCategoryChart();
+        }
+        
+        // Update productivity chart
+        function updateProductivityChart() {
+            const ctx = document.getElementById('productivityChart').getContext('2d');
+            
+            // Calculate weekly productivity
+            const weeklyData = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateString = date.toISOString().split('T')[0];
+                
+                const dayTasks = appData.tasks.filter(task => task.date === dateString);
+                const completedTasks = dayTasks.filter(task => task.completed);
+                
+                weeklyData.push({
+                    date: dateString,
+                    total: dayTasks.length,
+                    completed: completedTasks.length
+                });
+            }
+            
+            if (chartInstances.productivityChart) {
+                chartInstances.productivityChart.destroy();
+            }
+            
+            chartInstances.productivityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: weeklyData.map(d => formatDateShort(d.date)),
+                    datasets: [
+                        {
+                            label: 'Total Kegiatan',
+                            data: weeklyData.map(d => d.total),
+                            backgroundColor: '#4361ee',
+                            borderColor: '#3a0ca3',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Selesai',
+                            data: weeklyData.map(d => d.completed),
+                            backgroundColor: '#2ec4b6',
+                            borderColor: '#20a394',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update analytics chart
+        function updateAnalyticsChart() {
+            const ctx = document.getElementById('analyticsChart').getContext('2d');
+            
+            // Group tasks by priority
+            const priorityCounts = {
+                high: 0,
+                medium: 0,
+                low: 0
+            };
+            
+            appData.tasks.forEach(task => {
+                if (priorityCounts[task.priority] !== undefined) {
+                    priorityCounts[task.priority]++;
+                }
+            });
+            
+            if (chartInstances.analyticsChart) {
+                chartInstances.analyticsChart.destroy();
+            }
+            
+            chartInstances.analyticsChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Prioritas Tinggi', 'Prioritas Sedang', 'Prioritas Rendah'],
+                    datasets: [{
+                        data: [priorityCounts.high, priorityCounts.medium, priorityCounts.low],
+                        backgroundColor: [
+                            '#e71d36',
+                            '#ff9f1c',
+                            '#2ec4b6'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update category chart
+        function updateCategoryChart() {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            // Group tasks by category
+            const categoryData = appData.categories.map(category => {
+                const tasksInCategory = appData.tasks.filter(task => task.category === category.id);
+                return {
+                    name: category.name,
+                    color: category.color,
+                    count: tasksInCategory.length
+                };
+            }).filter(data => data.count > 0);
+            
+            if (categoryData.length === 0) {
+                document.getElementById('categoryChart').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('categoryChart').style.display = 'block';
+            
+            if (chartInstances.categoryChart) {
+                chartInstances.categoryChart.destroy();
+            }
+            
+            chartInstances.categoryChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: categoryData.map(d => d.name),
+                    datasets: [{
+                        data: categoryData.map(d => d.count),
+                        backgroundColor: categoryData.map(d => d.color),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Generate PDF report
+        async function generatePDFReport(type, data) {
+            showLoading();
+            
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                const pageWidth = doc.internal.pageSize.getWidth();
+                
+                // Header
+                doc.setFontSize(20);
+                doc.setTextColor(67, 97, 238);
+                doc.text('DailyPlanner - Laporan Kegiatan', pageWidth / 2, 20, { align: 'center' });
+                
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Periode: ${data.period}`, pageWidth / 2, 30, { align: 'center' });
+                doc.text(`Dibuat: ${new Date().toLocaleDateString('id-ID')}`, pageWidth / 2, 37, { align: 'center' });
+                
+                // Summary
+                doc.setFontSize(14);
+                doc.setTextColor(67, 97, 238);
+                doc.text('Ringkasan', 14, 50);
+                
+                doc.setDrawColor(67, 97, 238);
+                doc.setLineWidth(0.5);
+                doc.line(14, 52, pageWidth - 14, 52);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Total Kegiatan: ${data.summary.total}`, 20, 60);
+                doc.text(`Selesai: ${data.summary.completed}`, 20, 67);
+                doc.text(`Belum Selesai: ${data.summary.pending}`, 20, 74);
+                doc.text(`Persentase Selesai: ${data.summary.percentage}%`, 20, 81);
+                
+                // Tasks Table
+                let yPos = 90;
+                doc.setFontSize(14);
+                doc.setTextColor(67, 97, 238);
+                doc.text('Detail Kegiatan', 14, yPos);
+                doc.setDrawColor(67, 97, 238);
+                doc.line(14, yPos + 2, pageWidth - 14, yPos + 2);
+                
+                yPos += 10;
+                
+                const tableData = data.tasks.map(task => {
+                    const category = getCategory(task.category);
+                    return [
+                        formatDateShort(task.date),
+                        task.title,
+                        category.name,
+                        getPriorityText(task.priority),
+                        task.completed ? 'Selesai' : 'Belum',
+                        task.notes || '-'
+                    ];
+                });
+                
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Tanggal', 'Kegiatan', 'Kategori', 'Prioritas', 'Status', 'Catatan']],
+                    body: tableData,
+                    theme: 'striped',
+                    headStyles: { fillColor: [67, 97, 238] },
+                    margin: { left: 14, right: 14 }
+                });
+                
+                // Footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(128, 128, 128);
+                    doc.text(`Halaman ${i} dari ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+                }
+                
+                // Save PDF
+                const fileName = `Laporan_${type}_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
+                showToast('Laporan berhasil diunduh!');
+                
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showToast('Error membuat laporan PDF');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // ========== TASK FUNCTIONS ==========
+        
+        // Show task modal
+        function showTaskModal(taskId = null) {
+            const modal = document.getElementById('taskModal');
+            const form = document.getElementById('taskForm');
+            const title = document.getElementById('taskModalTitle');
+            const submitBtn = document.getElementById('taskSubmitBtn');
+            
+            if (taskId) {
+                // Edit mode
+                const task = appData.tasks.find(t => t.id === taskId);
+                if (!task) return;
+                
+                title.textContent = 'Edit Kegiatan';
+                document.getElementById('editingTaskId').value = task.id;
+                document.getElementById('taskTitle').value = task.title;
+                document.getElementById('taskCategory').value = task.category;
+                document.getElementById('taskPriority').value = task.priority;
+                document.getElementById('taskDate').value = task.date;
+                document.getElementById('taskStartTime').value = task.startTime || '';
+                document.getElementById('taskEndTime').value = task.endTime || '';
+                document.getElementById('taskRepeat').value = task.repeat || 'none';
+                document.getElementById('taskReminder').value = task.reminder || appData.settings.defaultReminderTime;
+                document.getElementById('taskNotes').value = task.notes || '';
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Kegiatan';
+            } else {
+                // Add mode
+                title.textContent = 'Tambah Kegiatan Baru';
+                form.reset();
+                document.getElementById('editingTaskId').value = '';
+                document.getElementById('taskDate').valueAsDate = new Date();
+                document.getElementById('taskReminder').value = appData.settings.defaultReminderTime;
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> Simpan Kegiatan';
+            }
+            
+            // Update category select
+            const categorySelect = document.getElementById('taskCategory');
+            categorySelect.innerHTML = '<option value="">Pilih Kategori</option>';
+            appData.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = `${category.icon} ${category.name}`;
+                categorySelect.appendChild(option);
+            });
+            
+            if (taskId) {
+                const task = appData.tasks.find(t => t.id === taskId);
+                categorySelect.value = task.category;
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        // Close task modal
+        document.getElementById('closeTaskBtn').addEventListener('click', function() {
+            document.getElementById('taskModal').classList.remove('active');
+        });
+        
+        // Handle task form submission
+        document.getElementById('taskForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const taskId = document.getElementById('editingTaskId').value;
+            const title = document.getElementById('taskTitle').value.trim();
+            const category = document.getElementById('taskCategory').value;
+            const priority = document.getElementById('taskPriority').value;
+            const date = document.getElementById('taskDate').value;
+            const startTime = document.getElementById('taskStartTime').value;
+            const endTime = document.getElementById('taskEndTime').value;
+            const repeat = document.getElementById('taskRepeat').value;
+            const reminder = document.getElementById('taskReminder').value;
+            const notes = document.getElementById('taskNotes').value.trim();
+            
+            if (!title) {
+                alert('Judul kegiatan harus diisi!');
+                return;
+            }
+            
+            if (!category) {
+                alert('Pilih kategori terlebih dahulu!');
+                return;
+            }
+            
+            if (taskId) {
+                // Update existing task
+                const taskIndex = appData.tasks.findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    appData.tasks[taskIndex] = {
+                        ...appData.tasks[taskIndex],
+                        title,
+                        category,
+                        priority,
+                        date,
+                        startTime: startTime || null,
+                        endTime: endTime || null,
+                        repeat: repeat !== 'none' ? repeat : null,
+                        reminder: reminder !== 'none' ? reminder : null,
+                        notes: notes || null,
+                        updatedAt: new Date().toISOString()
+                    };
+                    showToast('Kegiatan berhasil diperbarui!');
+                }
+            } else {
+                // Add new task
+                const newTask = {
+                    id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    title,
+                    category,
+                    priority,
+                    date,
+                    startTime: startTime || null,
+                    endTime: endTime || null,
+                    repeat: repeat !== 'none' ? repeat : null,
+                    reminder: reminder !== 'none' ? reminder : null,
+                    notes: notes || null,
+                    completed: false,
+                    completedAt: null,
+                    reminderShown: false,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                appData.tasks.push(newTask);
+                showToast('Kegiatan berhasil ditambahkan!');
+            }
+            
+            saveData();
+            document.getElementById('taskModal').classList.remove('active');
+        });
+        
+        // Edit task
+        window.editTask = function(taskId) {
+            showTaskModal(taskId);
+        };
+        
+        // Delete task
+        window.deleteTask = function(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            if (confirm(`Hapus kegiatan "${task.title}"?`)) {
+                appData.tasks = appData.tasks.filter(t => t.id !== taskId);
+                saveData();
+                showToast('Kegiatan berhasil dihapus!');
+            }
+        };
+        
+        // Toggle task complete
+        window.toggleTaskComplete = function(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            task.completed = !task.completed;
+            task.completedAt = task.completed ? new Date().toISOString() : null;
+            
+            saveData();
+            showToast(task.completed ? 'Kegiatan ditandai selesai!' : 'Kegiatan dibuka kembali');
+        };
+        
+        // ========== CATEGORY FUNCTIONS ==========
+        
+        // Show category modal
+        function showCategoryModal(categoryId = null) {
+            const modal = document.getElementById('categoryModal');
+            const form = document.getElementById('categoryForm');
+            const title = document.getElementById('categoryModalTitle');
+            
+            if (categoryId) {
+                // Edit mode
+                const category = appData.categories.find(c => c.id === categoryId);
+                if (!category) return;
+                
+                title.textContent = 'Edit Kategori';
+                document.getElementById('editingCategoryId').value = category.id;
+                document.getElementById('categoryName').value = category.name;
+                document.getElementById('categoryColor').value = category.color;
+                document.getElementById('categoryIcon').value = category.icon;
+                document.getElementById('categoryDesc').value = category.description || '';
+            } else {
+                // Add mode
+                title.textContent = 'Tambah Kategori Baru';
+                form.reset();
+                document.getElementById('editingCategoryId').value = '';
+                document.getElementById('categoryColor').value = '#4361ee';
+                document.getElementById('categoryIcon').value = '💼';
+            }
+            
+            modal.classList.add('active');
+        }
+        
+        // Close category modal
+        document.getElementById('closeCategoryBtn').addEventListener('click', function() {
+            document.getElementById('categoryModal').classList.remove('active');
+        });
+        
+        // Handle category form submission
+        document.getElementById('categoryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const categoryId = document.getElementById('editingCategoryId').value;
+            const name = document.getElementById('categoryName').value.trim();
+            const color = document.getElementById('categoryColor').value;
+            const icon = document.getElementById('categoryIcon').value;
+            const description = document.getElementById('categoryDesc').value.trim();
+            
+            if (!name) {
+                alert('Nama kategori harus diisi!');
+                return;
+            }
+            
+            if (categoryId) {
+                // Update existing category
+                const categoryIndex = appData.categories.findIndex(c => c.id === categoryId);
+                if (categoryIndex !== -1) {
+                    appData.categories[categoryIndex] = {
+                        ...appData.categories[categoryIndex],
+                        name,
+                        color,
+                        icon,
+                        description: description || null
+                    };
+                    showToast('Kategori berhasil diperbarui!');
+                }
+            } else {
+                // Add new category
+                const newCategory = {
+                    id: 'cat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                    name,
+                    color,
+                    icon,
+                    description: description || null,
+                    createdAt: new Date().toISOString()
+                };
+                
+                appData.categories.push(newCategory);
+                showToast('Kategori berhasil ditambahkan!');
+            }
+            
+            saveData();
+            document.getElementById('categoryModal').classList.remove('active');
+        });
+        
+        // Edit category
+        window.editCategory = function(categoryId) {
+            showCategoryModal(categoryId);
+        };
+        
+        // Delete category
+        window.deleteCategory = function(categoryId) {
+            const category = appData.categories.find(c => c.id === categoryId);
+            if (!category) return;
+            
+            // Check if category has tasks
+            const categoryTasks = appData.tasks.filter(task => task.category === categoryId);
+            if (categoryTasks.length > 0) {
+                alert(`Tidak bisa menghapus kategori "${category.name}" karena masih ada ${categoryTasks.length} kegiatan yang menggunakan kategori ini.`);
+                return;
+            }
+            
+            if (confirm(`Hapus kategori "${category.name}"?`)) {
+                appData.categories = appData.categories.filter(c => c.id !== categoryId);
+                saveData();
+                showToast('Kategori berhasil dihapus!');
+            }
+        };
+        
+        // ========== EVENT HANDLERS ==========
+        
+        // Navigation
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const pageId = this.getAttribute('data-page');
+                
+                // Remove active from all
+                document.querySelectorAll('.menu-item').forEach(i => {
+                    i.classList.remove('active');
+                });
+                document.querySelectorAll('.page').forEach(p => {
+                    p.classList.remove('active');
+                });
+                
+                // Add active to clicked
+                this.classList.add('active');
+                document.getElementById(pageId).classList.add('active');
+                
+                // Update page title
+                updatePageTitle(pageId);
+                
+                // Close sidebar on mobile
+                if (window.innerWidth < 992) {
+                    document.getElementById('sidebar').classList.remove('active');
+                }
+                
+                // Refresh page content
+                updateDisplay();
+            });
+        });
+        
+        // Hamburger menu
+        document.getElementById('hamburgerMenu').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('active');
+        });
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const hamburger = document.getElementById('hamburgerMenu');
+            
+            if (window.innerWidth < 992 && 
+                sidebar.classList.contains('active') &&
+                !sidebar.contains(e.target) && 
+                !hamburger.contains(e.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
+        
+        // Calendar navigation
+        document.getElementById('prevMonthBtn').addEventListener('click', function() {
+            appData.currentMonth--;
+            if (appData.currentMonth < 0) {
+                appData.currentMonth = 11;
+                appData.currentYear--;
+            }
+            saveData();
+        });
+        
+        document.getElementById('nextMonthBtn').addEventListener('click', function() {
+            appData.currentMonth++;
+            if (appData.currentMonth > 11) {
+                appData.currentMonth = 0;
+                appData.currentYear++;
+            }
+            saveData();
+        });
+        
+        // Tabs in reports
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                
+                // Remove active from all tabs
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-content').forEach(c => {
+                    c.classList.remove('active');
+                });
+                
+                // Add active to clicked tab
+                this.classList.add('active');
+                document.getElementById(`${tabId}Report`).classList.add('active');
+            });
+        });
+        
+        // Search and filter
+        document.getElementById('searchInput').addEventListener('input', updateTasksList);
+        document.getElementById('categoryFilter').addEventListener('change', updateTasksList);
+        document.getElementById('statusFilter').addEventListener('change', updateTasksList);
+        document.getElementById('priorityFilter').addEventListener('change', updateTasksList);
+        
+        // Settings checkboxes
+        document.getElementById('enableNotifications').addEventListener('change', function() {
+            appData.settings.notificationsEnabled = this.checked;
+            saveData();
+        });
+        
+        document.getElementById('enableSounds').addEventListener('change', function() {
+            appData.settings.soundsEnabled = this.checked;
+            saveData();
+        });
+        
+        document.getElementById('defaultReminderTime').addEventListener('change', function() {
+            appData.settings.defaultReminderTime = parseInt(this.value);
+            saveData();
+        });
+        
+        // Notification button
+        document.getElementById('notificationBtn').addEventListener('click', function() {
+            if (Notification.permission === 'granted') {
+                sendNotification('DailyPlanner', 'Ini adalah notifikasi test dari aplikasi DailyPlanner.');
+            } else {
+                Notification.requestPermission();
+            }
+        });
+        
+        // Backup data
+        document.getElementById('backupBtn').addEventListener('click', function() {
+            const dataStr = JSON.stringify(appData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dailyplanner_backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            showToast('Data berhasil di-backup!');
+        });
+        
+        // Restore data
+        document.getElementById('restoreBtn').addEventListener('click', function() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const backup = JSON.parse(e.target.result);
+                        if (confirm('Restore data? Data saat ini akan diganti.')) {
+                            appData = backup;
+                            saveData();
+                            showToast('Data berhasil di-restore!');
+                        }
+                    } catch (err) {
+                        alert('File backup tidak valid!');
+                    }
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        });
+        
+        // Reset data
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            if (confirm('RESET SEMUA DATA?\nIni akan menghapus semua data!')) {
+                if (prompt('Ketik "RESET" untuk konfirmasi:') === 'RESET') {
+                    localStorage.removeItem('dailyplanner_data');
+                    location.reload();
+                }
+            }
+        });
+        
+        // Export all data
+        document.getElementById('exportAllBtn').addEventListener('click', function() {
+            // Generate comprehensive report
+            const reportData = {
+                period: 'Semua Data',
+                summary: {
+                    total: appData.tasks.length,
+                    completed: appData.tasks.filter(t => t.completed).length,
+                    pending: appData.tasks.filter(t => !t.completed).length,
+                    percentage: appData.tasks.length > 0 ? 
+                        Math.round((appData.tasks.filter(t => t.completed).length / appData.tasks.length) * 100) : 0
+                },
+                tasks: appData.tasks
+            };
+            
+            generatePDFReport('all', reportData);
+        });
+        
+        // Export buttons for reports
+        document.getElementById('exportDailyBtn').addEventListener('click', function() {
+            const date = document.getElementById('reportDate').value;
+            const dailyTasks = appData.tasks.filter(task => task.date === date);
+            
+            const reportData = {
+                period: formatDate(date),
+                summary: {
+                    total: dailyTasks.length,
+                    completed: dailyTasks.filter(t => t.completed).length,
+                    pending: dailyTasks.filter(t => !t.completed).length,
+                    percentage: dailyTasks.length > 0 ? 
+                        Math.round((dailyTasks.filter(t => t.completed).length / dailyTasks.length) * 100) : 0
+                },
+                tasks: dailyTasks
+            };
+            
+            generatePDFReport('daily', reportData);
+        });
+        
+        document.getElementById('exportWeeklyBtn').addEventListener('click', function() {
+            // Implement weekly export
+            showToast('Fitur export mingguan akan segera tersedia');
+        });
+        
+        document.getElementById('exportMonthlyBtn').addEventListener('click', function() {
+            const month = parseInt(document.getElementById('reportMonth').value);
+            const year = parseInt(document.getElementById('reportYear').value);
+            
+            const monthlyTasks = appData.tasks.filter(task => {
+                const taskDate = new Date(task.date);
+                return taskDate.getMonth() === month && taskDate.getFullYear() === year;
+            });
+            
+            const reportData = {
+                period: `${monthNames[month]} ${year}`,
+                summary: {
+                    total: monthlyTasks.length,
+                    completed: monthlyTasks.filter(t => t.completed).length,
+                    pending: monthlyTasks.filter(t => !t.completed).length,
+                    percentage: monthlyTasks.length > 0 ? 
+                        Math.round((monthlyTasks.filter(t => t.completed).length / monthlyTasks.length) * 100) : 0
+                },
+                tasks: monthlyTasks
+            };
+            
+            generatePDFReport('monthly', reportData);
+        });
+        
+        document.getElementById('exportYearlyBtn').addEventListener('click', function() {
+            const year = parseInt(document.getElementById('reportYearSelect').value);
+            
+            const yearlyTasks = appData.tasks.filter(task => {
+                const taskDate = new Date(task.date);
+                return taskDate.getFullYear() === year;
+            });
+            
+            const reportData = {
+                period: `Tahun ${year}`,
+                summary: {
+                    total: yearlyTasks.length,
+                    completed: yearlyTasks.filter(t => t.completed).length,
+                    pending: yearlyTasks.filter(t => !t.completed).length,
+                    percentage: yearlyTasks.length > 0 ? 
+                        Math.round((yearlyTasks.filter(t => t.completed).length / yearlyTasks.length) * 100) : 0
+                },
+                tasks: yearlyTasks
+            };
+            
+            generatePDFReport('yearly', reportData);
+        });
+        
+        // ========== INITIALIZE ==========
+        
+        function initApp() {
+            loadData();
+            
+            // Request notification permission
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+            
+            // Start reminder checker (check every minute)
+            setInterval(checkReminders, 60000);
+            
+            // Initial check
+            checkReminders();
+            
+            // Initial display update
+            updateDisplay();
+            
+            console.log('DailyPlanner siap!');
+            console.log('Versi:', appData.version);
+            console.log('Kategori:', appData.categories.length);
+            console.log('Kegiatan:', appData.tasks.length);
+        }
+        
+        // Start the app
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
